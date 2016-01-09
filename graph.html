@@ -10,6 +10,8 @@
 
       // onload callback
       function drawChart() {
+        
+        var max_ws_mph = 0.0;
 
         var public_key = '1nXZMd60WgfxnN7oWl6q';
 
@@ -88,6 +90,7 @@
               parseFloat(Math.cos(row.wd_d/10.0*Math.PI/180.0)*row.ws_mph/100.0),
               parseFloat(Math.sin(row.wd_d/10.0*Math.PI/180.0)*row.ws_mph/100.0)
             ]);
+            max_ws_mph = Math.ceil(Math.max(max_ws_mph,parseFloat(row.ws_mph/100.0))/10.0)*10.0;
           });
 
           var chart3 = new google.visualization.ScatterChart($('#chart3').get(0));
@@ -99,12 +102,12 @@
             title: 'Wind Direction & Magnitude [' + new Date(new Date().valueOf()-24*60*60*1000).toLocaleString() + '] through [' + 
                    new Date().toLocaleString() +']',
             chartArea: { width: '90%', height: '75%' },
-            hAxis: { viewWindow: { min: -10, max: 10 }},
-            vAxis: { viewWindow: { min: -10, max: 10 }}
+            hAxis: { viewWindow: { min: -max_ws_mph, max: max_ws_mph }},
+            vAxis: { viewWindow: { min: -max_ws_mph, max: max_ws_mph }}
           });
 
           var data4 = new google.visualization.DataTable();
-
+          max_ws_mph = 0.0;
           data4.addColumn('number', 'x');
           data4.addColumn('number', 'y');
 
@@ -113,6 +116,7 @@
               parseFloat(Math.cos(row.ws_dmx/10.0*Math.PI/180.0)*row.ws_max/100.0),
               parseFloat(Math.sin(row.ws_dmx/10.0*Math.PI/180.0)*row.ws_max/100.0)
             ]);
+            max_ws_mph = Math.ceil(Math.max(max_ws_mph,parseFloat(row.ws_max/100.0))/10.0)*10.0;
           });
 
           var chart4 = new google.visualization.ScatterChart($('#chart4').get(0));
@@ -124,8 +128,8 @@
             title: 'Wind Direction & Magnitude (Max) [' + new Date(new Date().valueOf()-24*60*60*1000).toLocaleString() + '] through [' + 
                    new Date().toLocaleString() +']',
             chartArea: { width: '90%', height: '75%' },
-            hAxis: { viewWindow: { min: -10, max: 10 }},
-            vAxis: { viewWindow: { min: -10, max: 10 }}
+            hAxis: { viewWindow: { min: -max_ws_mph, max: max_ws_mph }},
+            vAxis: { viewWindow: { min: -max_ws_mph, max: max_ws_mph }}
           });
 
         });
