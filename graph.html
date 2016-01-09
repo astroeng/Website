@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- EXTERNAL LIBS-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="https://www.google.com/jsapi"></script>
+
+    <!-- EXAMPLE SCRIPT -->
+    <script>
+
+      // onload callback
+      function drawChart() {
+
+        var public_key = '1nXZMd60WgfxnN7oWl6q';
+
+        // JSONP request
+        var jsonData = $.ajax({
+          url: 'https://data.sparkfun.com/output/' + public_key + '?limit=720.json',
+          //data: {page: 1},
+          dataType: 'jsonp',
+        }).done(function (results) {
+
+          var data = new google.visualization.DataTable();
+
+          data.addColumn('datetime', 'Time');
+          data.addColumn('number', 'Max Wind Speed (mph)');
+          data.addColumn('number', 'Wind Speed (mph)');
+          data.addColumn('number', 'Wind Speed (stDev)');
+
+          $.each(results, function (i, row) {
+            data.addRow([
+              (new Date(row.timestamp)),
+              parseFloat(row.ws_max/100.0),
+              parseFloat(row.ws_mph/100.0),
+              parseFloat(row.ws_std/100.0)
+            ]);
+          });
+
+          var chart = new google.visualization.LineChart($('#chart').get(0));
+
+          chart.draw(data, {
+            width: 750,
+            height: 400,
+            legend: {position: 'bottom'},
+            title: 'Wind Speed [' + new Date(new Date().valueOf()-24*60*60*1000).toLocaleString() + '] through [' + 
+                   new Date().toLocaleString() +']',
+            chartArea: { width: '90%', height: '75%' },
+            hAxis: { viewWindow: { min: new Date(new Date().valueOf()-24*60*60*1000), max: new Date() },
+                     gridlines: { count: -1, units: { hours: { format: ['dd MMM HH:mm'] }}},
+                     minorGridlines: { units: { hours: { format: ['HH:mm:ss a'] }}}}
+          });
+
+          var data2 = new google.visualization.DataTable();
+
+          data2.addColumn('datetime', 'Time');
+          data2.addColumn('number', 'Temperature (F)');
+          data2.addColumn('number', 'Humidity (r%)');
+
+          $.each(results, function (i, row) {
+            data2.addRow([
+              (new Date(row.timestamp)),
+              parseFloat(row.t_df/100.0),
+              parseFloat(row.h_ap/100.0)
+            ]);
+          });
+
+          var chart2 = new google.visualization.LineChart($('#chart2').get(0));
+          chart2.draw(data2, {
+            width: 750,
+            height: 400,
+            legend: {position: 'bottom'},
+            title: 'Temperature and Humidity [' + new Date(new Date().valueOf()-24*60*60*1000).toLocaleString() + '] through [' + 
+                   new Date().toLocaleString() +']',
+            chartArea: { width: '90%', height: '75%' },
+            hAxis: { viewWindow: { min: new Date(new Date().valueOf()-24*60*60*1000), max: new Date() },
+                     gridlines: { count: -1, units: { hours: { format: ['dd MMM HH:mm'] }}},
+                     minorGridlines: { units: { hours: { format: ['HH:mm:ss a'] }}}}
+          });
+
+
+          var data3 = new google.visualization.DataTable();
+
+          data3.addColumn('number', 'x');
+          data3.addColumn('number', 'y');
+
+          $.each(results, function (i, row) {
+            data3.addRow([
+              parseFloat(Math.cos(row.wd_d/10.0*Math.PI/180.0)*row.ws_mph/100.0),
+              parseFloat(Math.sin(row.wd_d/10.0*Math.PI/180.0)*row.ws_mph/100.0)
+            ]);
+          });
+
+          var chart3 = new google.visualization.ScatterChart($('#chart3').get(0));
+          chart3.draw(data3, {
+            width: 750,
+            height: 750,
+            legend: {position: 'none'},
+            enableInteractivity: false,
+            title: 'Wind Direction & Magnitude [' + new Date(new Date().valueOf()-24*60*60*1000).toLocaleString() + '] through [' + 
+                   new Date().toLocaleString() +']',
+            chartArea: { width: '90%', height: '75%' },
+            hAxis: { viewWindow: { min: -10, max: 10 }},
+            vAxis: { viewWindow: { min: -10, max: 10 }}
+          });
+
+          var data4 = new google.visualization.DataTable();
+
+          data4.addColumn('number', 'x');
+          data4.addColumn('number', 'y');
+
+          $.each(results, function (i, row) {
+            data4.addRow([
+              parseFloat(Math.cos(row.ws_dmx/10.0*Math.PI/180.0)*row.ws_max/100.0),
+              parseFloat(Math.sin(row.ws_dmx/10.0*Math.PI/180.0)*row.ws_max/100.0)
+            ]);
+          });
+
+          var chart4 = new google.visualization.ScatterChart($('#chart4').get(0));
+          chart4.draw(data4, {
+            width: 750,
+            height: 750,
+            legend: {position: 'none'},
+            enableInteractivity: false,
+            title: 'Wind Direction & Magnitude (Max) [' + new Date(new Date().valueOf()-24*60*60*1000).toLocaleString() + '] through [' + 
+                   new Date().toLocaleString() +']',
+            chartArea: { width: '90%', height: '75%' },
+            hAxis: { viewWindow: { min: -10, max: 10 }},
+            vAxis: { viewWindow: { min: -10, max: 10 }}
+          });
+
+        });
+
+      }
+
+      // load chart lib
+      google.load('visualization', '1', {
+        packages: ['corechart']
+      });
+
+      // call drawChart once google charts is loaded
+      google.setOnLoadCallback(drawChart);
+
+    </script>
+
+  </head>
+  <body>
+    <table width="1800">
+       <tr>
+         <td><div id="chart" style="width: 100%;"></div></td>
+         <td><div id="chart2" style="width: 100%;"></div></td>
+       </tr>
+       <tr>
+         <td><div id="chart3" style="width: 100%;"></div></td>
+         <td><div id="chart4" style="width: 100%;"></div></td>
+       </tr>
+    </table>
+  </body>
+</html>
