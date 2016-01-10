@@ -7,47 +7,30 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
     <script src="https://www.google.com/jsapi"></script>
 
-    <!-- EXAMPLE SCRIPT -->
     <script>
-
       // onload callback
       function drawCharts() {
-        
+
+        var startDate;
+        var endDate;
         var max_ws_mph = 0.0;
+        var max_ws_max = 0.0;
 
         var public_key = '1nXZMd60WgfxnN7oWl6q';
 
-        // JSONP request grab 24 hours worth of data.
+        /* JSONP request grab up to 24 hours worth of data. */
+
         var jsonData = $.ajax({
           url: 'https://data.sparkfun.com/output/' + public_key + '?limit=720.json',
           dataType: 'jsonp',
         }).done(function (results) {
 
+          /* Setup the data structures for the graphs. */
+
           var pressureChartData = new google.visualization.DataTable();
 
           pressureChartData.addColumn('datetime', 'Time');
           pressureChartData.addColumn('number', 'Pressure (inHg)');
-
-          $.each(results, function (i, row) {
-            pressureChartData.addRow([
-              (new Date(row.timestamp)),
-              parseFloat(row.p_in/1000.0)
-            ]);
-          });
-
-          var pressureChart = new google.visualization.LineChart($('#pressureChart').get(0));
-
-          pressureChart.draw(pressureChartData, {
-            width: 1000,
-            height: 250,
-            legend: {position: 'bottom'},
-            title: 'Pressure [' + new Date(new Date().valueOf()-24*60*60*1000).toLocaleString() + '] to [' + 
-                   new Date().toLocaleString() +']',
-            chartArea: { width: '90%', height: '75%' },
-            hAxis: { viewWindow: { min: new Date(new Date().valueOf()-24*60*60*1000), max: new Date() },
-                     gridlines: { count: -1, units: { hours: { format: ['dd MMM HH:mm'] }}},
-                     minorGridlines: { units: { hours: { format: ['HH:mm:ss a'] }}}}
-          });
 
 
           var windLineChartData = new google.visualization.DataTable();
@@ -57,28 +40,6 @@
           windLineChartData.addColumn('number', 'Wind Speed (mph)');
           windLineChartData.addColumn('number', 'Wind Speed (stDev)');
 
-          $.each(results, function (i, row) {
-            windLineChartData.addRow([
-              (new Date(row.timestamp)),
-              parseFloat(row.ws_max/100.0),
-              parseFloat(row.ws_mph/100.0),
-              parseFloat(row.ws_std/100.0)
-            ]);
-          });
-
-          var windLineChart = new google.visualization.LineChart($('#windSpeedChart').get(0));
-
-          windLineChart.draw(windLineChartData, {
-            width: 500,
-            height: 250,
-            legend: {position: 'bottom'},
-            title: 'Wind Speed [' + new Date(new Date().valueOf()-24*60*60*1000).toLocaleString() + '] to [' + 
-                   new Date().toLocaleString() +']',
-            chartArea: { width: '90%', height: '75%' },
-            hAxis: { viewWindow: { min: new Date(new Date().valueOf()-24*60*60*1000), max: new Date() },
-                     gridlines: { count: -1, units: { hours: { format: ['dd MMM HH:mm'] }}},
-                     minorGridlines: { units: { hours: { format: ['HH:mm:ss a'] }}}}
-          });
 
           var temperatureHumidityData = new google.visualization.DataTable();
 
@@ -86,12 +47,89 @@
           temperatureHumidityData.addColumn('number', 'Temperature (F)');
           temperatureHumidityData.addColumn('number', 'Humidity (r%)');
 
+
+          var windSpeedPolarChartData = new google.visualization.DataTable();
+
+          windSpeedPolarChartData.addColumn('number', 'x');
+          windSpeedPolarChartData.addColumn('number', 'y');
+
+
+          var maxWindSpeedPolarChartData = new google.visualization.DataTable();
+
+          maxWindSpeedPolarChartData.addColumn('number', 'x');
+          maxWindSpeedPolarChartData.addColumn('number', 'y');
+
+          /* Loop through the returned data and fill in the data structures
+           * defined above.
+           */
+
           $.each(results, function (i, row) {
+            
+            if (i == 0)
+            {
+		startDate = new Date(row.timestamp);
+            }
+
+            endDate = new Date(row.timestamp);
+
+            pressureChartData.addRow([
+              (new Date(row.timestamp)),
+              parseFloat(row.p_in/1000.0)
+            ]);
+
+            windLineChartData.addRow([
+              (new Date(row.timestamp)),
+              parseFloat(row.ws_max/100.0),
+              parseFloat(row.ws_mph/100.0),
+              parseFloat(row.ws_std/100.0)
+            ]);
+
             temperatureHumidityData.addRow([
               (new Date(row.timestamp)),
               parseFloat(row.t_df/100.0),
               parseFloat(row.h_ap/100.0)
             ]);
+
+            windSpeedPolarChartData.addRow([
+              parseFloat(Math.cos(row.wd_d/10.0*Math.PI/180.0)*row.ws_mph/100.0),
+              parseFloat(Math.sin(row.wd_d/10.0*Math.PI/180.0)*row.ws_mph/100.0)
+            ]);
+            max_ws_mph = Math.ceil(Math.max(max_ws_mph,parseFloat(row.ws_mph/100.0))/10.0)*10.0;
+
+            maxWindSpeedPolarChartData.addRow([
+              parseFloat(Math.cos(row.ws_dmx/10.0*Math.PI/180.0)*row.ws_max/100.0),
+              parseFloat(Math.sin(row.ws_dmx/10.0*Math.PI/180.0)*row.ws_max/100.0)
+            ]);
+            max_ws_max = Math.ceil(Math.max(max_ws_max,parseFloat(row.ws_max/100.0))/10.0)*10.0;
+
+          });
+
+
+          /* Create the graphs and apply formatting to them. */
+
+          var pressureChart = new google.visualization.LineChart($('#pressureChart').get(0));
+          pressureChart.draw(pressureChartData, {
+            width: 1000,
+            height: 250,
+            legend: {position: 'bottom'},
+            title: 'Pressure [' + endDate.toLocaleString() + '] to [' + startDate.toLocaleString() +']',
+            chartArea: { width: '90%', height: '70%' },
+            hAxis: { viewWindow: { min: startDate, max: endDate },
+                     gridlines: { count: -1, units: { hours: { format: ['dd MMM HH:mm'] }}},
+                     minorGridlines: { units: { hours: { format: ['HH:mm:ss a'] }}}}
+          });
+
+
+          var windLineChart = new google.visualization.LineChart($('#windSpeedChart').get(0));
+          windLineChart.draw(windLineChartData, {
+            width: 500,
+            height: 250,
+            legend: {position: 'bottom'},
+            title: 'Wind Speed [' + endDate.toLocaleString() + '] to [' + startDate.toLocaleString() +']',
+            chartArea: { width: '90%', height: '70%' },
+            hAxis: { viewWindow: { min: startDate, max: endDate },
+                     gridlines: { count: -1, units: { hours: { format: ['dd MMM HH:mm'] }}},
+                     minorGridlines: { units: { hours: { format: ['HH:mm:ss a'] }}}}
           });
 
           var temperatureHumidityChart = new google.visualization.LineChart($('#temperatureHumidityChart').get(0));
@@ -99,26 +137,11 @@
             width: 500,
             height: 250,
             legend: {position: 'bottom'},
-            title: 'Temperature and Humidity [' + new Date(new Date().valueOf()-24*60*60*1000).toLocaleString() + '] to [' + 
-                   new Date().toLocaleString() +']',
-            chartArea: { width: '90%', height: '75%' },
-            hAxis: { viewWindow: { min: new Date(new Date().valueOf()-24*60*60*1000), max: new Date() },
+            title: 'Temperature and Humidity [' + endDate.toLocaleString() + '] to [' + startDate.toLocaleString() +']',
+            chartArea: { width: '90%', height: '70%' },
+            hAxis: { viewWindow: { min: startDate, max: endDate },
                      gridlines: { count: -1, units: { hours: { format: ['dd MMM HH:mm'] }}},
                      minorGridlines: { units: { hours: { format: ['HH:mm:ss a'] }}}}
-          });
-
-
-          var windSpeedPolarChartData = new google.visualization.DataTable();
-
-          windSpeedPolarChartData.addColumn('number', 'x');
-          windSpeedPolarChartData.addColumn('number', 'y');
-
-          $.each(results, function (i, row) {
-            windSpeedPolarChartData.addRow([
-              parseFloat(Math.cos(row.wd_d/10.0*Math.PI/180.0)*row.ws_mph/100.0),
-              parseFloat(Math.sin(row.wd_d/10.0*Math.PI/180.0)*row.ws_mph/100.0)
-            ]);
-            max_ws_mph = Math.ceil(Math.max(max_ws_mph,parseFloat(row.ws_mph/100.0))/10.0)*10.0;
           });
 
           var windSpeedPolarChart = new google.visualization.ScatterChart($('#windPolarChart').get(0));
@@ -127,24 +150,10 @@
             height: 500,
             legend: {position: 'none'},
             enableInteractivity: false,
-            title: 'Wind Direction & Magnitude [' + new Date(new Date().valueOf()-24*60*60*1000).toLocaleString() + '] to [' + 
-                   new Date().toLocaleString() +']',
+            title: 'Wind Direction & Magnitude [' + endDate.toLocaleString() + '] to [' + startDate.toLocaleString() +']',
             chartArea: { width: '90%', height: '75%' },
             hAxis: { viewWindow: { min: -max_ws_mph, max: max_ws_mph }},
             vAxis: { viewWindow: { min: -max_ws_mph, max: max_ws_mph }}
-          });
-
-          var maxWindSpeedPolarChartData = new google.visualization.DataTable();
-          max_ws_mph = 0.0;
-          maxWindSpeedPolarChartData.addColumn('number', 'x');
-          maxWindSpeedPolarChartData.addColumn('number', 'y');
-
-          $.each(results, function (i, row) {
-            maxWindSpeedPolarChartData.addRow([
-              parseFloat(Math.cos(row.ws_dmx/10.0*Math.PI/180.0)*row.ws_max/100.0),
-              parseFloat(Math.sin(row.ws_dmx/10.0*Math.PI/180.0)*row.ws_max/100.0)
-            ]);
-            max_ws_mph = Math.ceil(Math.max(max_ws_mph,parseFloat(row.ws_max/100.0))/10.0)*10.0;
           });
 
           var maxWindSpeedPolarChart = new google.visualization.ScatterChart($('#maxWindPolarChart').get(0));
@@ -153,25 +162,19 @@
             height: 500,
             legend: {position: 'none'},
             enableInteractivity: false,
-            title: 'Wind Direction & Magnitude (Max) [' + new Date(new Date().valueOf()-24*60*60*1000).toLocaleString() + '] to [' + 
-                   new Date().toLocaleString() +']',
+            title: 'Wind Direction & Magnitude (Max) [' + endDate.toLocaleString() + '] to [' + startDate.toLocaleString() +']',
             chartArea: { width: '90%', height: '75%' },
-            hAxis: { viewWindow: { min: -max_ws_mph, max: max_ws_mph }},
-            vAxis: { viewWindow: { min: -max_ws_mph, max: max_ws_mph }}
+            hAxis: { viewWindow: { min: -max_ws_max, max: max_ws_max }},
+            vAxis: { viewWindow: { min: -max_ws_max, max: max_ws_max }}
           });
-
         });
-
       }
-
       // load chart lib
       google.load('visualization', '1', {
         packages: ['corechart']
       });
-
       // call drawChart once google charts is loaded
       google.setOnLoadCallback(drawCharts);
-
     </script>
 
   </head>
@@ -193,3 +196,6 @@
     </table>
   </body>
 </html>
+
+
+
