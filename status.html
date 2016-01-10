@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="refresh" content="300">
+
+    <!-- EXTERNAL LIBS-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="https://www.google.com/jsapi"></script>
+
+    <script>
+      // onload callback
+      function drawCharts() {
+
+        var startDate;
+        var endDate;
+
+        var public_key = 'LQa68LGZKNhjElDrpobO';
+
+        /* JSONP request grab up to 24 hours worth of data. */
+
+        var jsonData = $.ajax({
+          url: 'https://data.sparkfun.com/output/' + public_key + '?limit=720.json',
+          dataType: 'jsonp',
+        }).done(function (results) {
+
+          /* Setup the data structures for the graphs. */
+
+          var taskTimeChartData = new google.visualization.DataTable();
+
+          taskTimeChartData.addColumn('datetime', 'Time');
+          taskTimeChartData.addColumn('number', 'Task 1 RunTime (ms)');
+          taskTimeChartData.addColumn('number', 'Task 2 RunTime (ms)');
+          taskTimeChartData.addColumn('number', 'Task 3 RunTime (ms)');
+          taskTimeChartData.addColumn('number', 'Task 4 RunTime (ms)');
+
+
+          var batteryChartData = new google.visualization.DataTable();
+
+          batteryChartData.addColumn('datetime', 'Time');
+          batteryChartData.addColumn('number', 'Battery Voltage (V)');
+
+          /* Loop through the returned data and fill in the data structures
+           * defined above.
+           */
+
+          $.each(results, function (i, row) {
+            
+            if (i == 0)
+            {
+		startDate = new Date(row.timestamp);
+            }
+
+            endDate = new Date(row.timestamp);
+
+            taskTimeChartData.addRow([
+              (new Date(row.timestamp)),
+              parseFloat(row.t1a_ms),
+              parseFloat(row.t2a_ms),
+              parseFloat(row.t3a_ms),
+              parseFloat(row.t4a_ms)
+            ]);
+
+            batteryChartData.addRow([
+              (new Date(row.timestamp)),
+              parseFloat(row.bv_v/100.0)
+            ]);
+
+          });
+
+
+          /* Create the graphs and apply formatting to them. */
+
+          var taskChart = new google.visualization.LineChart($('#taskChart').get(0));
+          taskChart.draw(taskTimeChartData, {
+            width: 1000,
+            height: 300,
+            legend: {position: 'bottom'},
+            title: 'Task Execution Time [' + endDate.toLocaleString() + '] to [' + startDate.toLocaleString() +']',
+            chartArea: { width: '90%', height: '70%' },
+            hAxis: { viewWindow: { min: startDate, max: endDate },
+                     gridlines: { count: -1, units: { hours: { format: ['dd MMM HH:mm'] }}},
+                     minorGridlines: { units: { hours: { format: ['HH:mm:ss a'] }}}}
+          });
+
+
+          var batteryChart = new google.visualization.LineChart($('#batteryChart').get(0));
+          batteryChart.draw(batteryChartData, {
+            width: 1000,
+            height: 300,
+            legend: {position: 'bottom'},
+            title: 'Battery Voltage [' + endDate.toLocaleString() + '] to [' + startDate.toLocaleString() +']',
+            chartArea: { width: '90%', height: '70%' },
+            hAxis: { viewWindow: { min: startDate, max: endDate },
+                     gridlines: { count: -1, units: { hours: { format: ['dd MMM HH:mm'] }}},
+                     minorGridlines: { units: { hours: { format: ['HH:mm:ss a'] }}}}
+
+          });
+        });
+      }
+      // load chart lib
+      google.load('visualization', '1', {
+        packages: ['corechart']
+      });
+      // call drawChart once google charts is loaded
+      google.setOnLoadCallback(drawCharts);
+    </script>
+
+  </head>
+  <body>
+    <table width="1000">
+       <tr>
+         <td><div id="taskChart" style="width: 100%;"></div></td>
+       </tr>
+       <tr>
+         <td><div id="batteryChart" style="width: 100%;"></div></td>
+       </tr>
+    </table>
+  </body>
+</html>
