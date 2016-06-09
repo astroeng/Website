@@ -47,7 +47,7 @@
             
             if (i == 0)
             {
-		startDate = new Date(row.timestamp);
+              startDate = new Date(row.timestamp);
             }
 
             endDate = new Date(row.timestamp);
@@ -72,7 +72,7 @@
 
           var taskChart = new google.visualization.LineChart($('#taskChart').get(0));
           taskChart.draw(taskTimeChartData, {
-            width: 1000,
+            width: window.innerWidth * 0.8,
             height: 300,
             legend: {position: 'bottom'},
             title: 'Task Execution Time [' + endDate.toLocaleString() + '] to [' + startDate.toLocaleString() +']',
@@ -85,7 +85,7 @@
 
           var batteryChart = new google.visualization.LineChart($('#batteryChart').get(0));
           batteryChart.draw(batteryChartData, {
-            width: 1000,
+            width: window.innerWidth * 0.8,
             height: 300,
             legend: {position: 'bottom'},
             title: 'Battery Voltage [' + endDate.toLocaleString() + '] to [' + startDate.toLocaleString() +']',
@@ -107,11 +107,27 @@
 
   </head>
   <body>
-    <table width="1000">
-       <tr>
+    <table width="80%" align=center><tr><td>
+      <a href="index.html">Home</a>
+      |
+      <a href="weather.html">Current Weather</a>
+      |
+      <a href="status.html">Station Status</a>
+      |
+      <a href="https://data.sparkfun.com/streams/1nXZMd60WgfxnN7oWl6q">Raw Weather Data</a>
+      |
+      <a href="https://data.sparkfun.com/streams/LQa68LGZKNhjElDrpobO">Raw Status Data</a>
+      </td><td align=right>
+      <a href="https://github.com/astroeng/Weather_Station">Station Code</a>
+      |
+      <a href="https://github.com/astroeng/Website">Website Code</a>    
+      </td></tr></table>
+    <hr width="80%" align=center>
+    <table width="80%" align=center>
+       <tr align=center>
          <td><div id="taskChart" style="width: 100%;"></div></td>
        </tr>
-       <tr>
+       <tr align=center>
          <td><div id="batteryChart" style="width: 100%;"></div></td>
        </tr>
     </table>
