@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta http-equiv="refresh" content="300">
-
+    <script src="scripts/header.js"></script>
     <!-- EXTERNAL LIBS-->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
     <script src="https://www.google.com/jsapi"></script>
@@ -11,15 +10,18 @@
       // onload callback
       function drawCharts() {
 
+        var txAverageSum = 0.0;
+        var txPointCount;
+      
         var startDate;
         var endDate;
 
-        var public_key = 'LQa68LGZKNhjElDrpobO';
+        var public_key = 'pwWwdY6rRAu3azWxyWx5';
 
         /* JSONP request grab up to 24 hours worth of data. */
 
         var jsonData = $.ajax({
-          url: 'https://data.sparkfun.com/output/' + public_key + '?limit=720.json',
+          url: 'https://data.sparkfun.com/output/' + public_key + '?limit=180.json',
           dataType: 'jsonp',
         }).done(function (results) {
 
@@ -28,11 +30,16 @@
           var taskTimeChartData = new google.visualization.DataTable();
 
           taskTimeChartData.addColumn('datetime', 'Time');
-          taskTimeChartData.addColumn('number', 'Discrete Task (ms)');
-          taskTimeChartData.addColumn('number', 'Digital Task (ms)');
-          taskTimeChartData.addColumn('number', 'Weather Task (ms)');
-          taskTimeChartData.addColumn('number', 'Status Task (ms)');
+          taskTimeChartData.addColumn('number', 'BMP180 Read (ms)');
+          taskTimeChartData.addColumn('number', 'HTU21D Read (ms)');
+          taskTimeChartData.addColumn('number', 'Argent Read (0.1 ms)');
+          taskTimeChartData.addColumn('number', 'Sensor Interval (s)');
+          
 
+          var phantTimeChartData = new google.visualization.DataTable();
+          phantTimeChartData.addColumn('datetime', 'Time');
+          phantTimeChartData.addColumn('number', 'Phant Tx (ms)');
+          phantTimeChartData.addColumn('number', 'Average (ms)');
 
           var batteryChartData = new google.visualization.DataTable();
 
@@ -43,7 +50,16 @@
            * defined above.
            */
 
-          $.each(results, function (i, row) {
+          $.each(results, function (i, row)
+          {
+            txPointCount = i;
+            txAverageSum += parseFloat(row.t5a_ms);
+          
+          });
+          
+           
+          $.each(results, function (i, row)
+          {
             
             if (i == 0)
             {
@@ -56,15 +72,21 @@
               (new Date(row.timestamp)),
               parseFloat(row.t1a_ms),
               parseFloat(row.t2a_ms),
-              parseFloat(row.t3a_ms),
-              parseFloat(row.t4a_ms)
+              parseFloat(row.t3a_ms*10.0),
+              parseFloat(row.t4a_ms)/1000.0
+            ]);
+            
+            phantTimeChartData.addRow([
+              (new Date(row.timestamp)),
+              parseFloat(row.t5a_ms),
+              parseFloat(txAverageSum/txPointCount),
             ]);
 
             batteryChartData.addRow([
               (new Date(row.timestamp)),
               parseFloat(row.bv_v/100.0)
             ]);
-
+ 
           });
 
 
@@ -82,6 +104,17 @@
                      minorGridlines: { units: { hours: { format: ['HH:mm:ss a'] }}}}
           });
 
+          var phantChart = new google.visualization.LineChart($('#phantChart').get(0));
+          phantChart.draw(phantTimeChartData, {
+            width: window.innerWidth * 0.8,
+            height: 300,
+            legend: {position: 'bottom'},
+            title: 'Phant Tx Time [' + endDate.toLocaleString() + '] to [' + startDate.toLocaleString() +']',
+            chartArea: { width: '90%', height: '70%' },
+            hAxis: { viewWindow: { min: startDate, max: endDate },
+                     gridlines: { count: -1, units: { hours: { format: ['dd MMM HH:mm'] }}},
+                     minorGridlines: { units: { hours: { format: ['HH:mm:ss a'] }}}}
+          });
 
           var batteryChart = new google.visualization.LineChart($('#batteryChart').get(0));
           batteryChart.draw(batteryChartData, {
@@ -107,29 +140,21 @@
 
   </head>
   <body>
-    <table width="80%" align=center><tr><td>
-      <a href="index.html">Home</a>
-      |
-      <a href="weather.html">Current Weather</a>
-      |
-      <a href="status.html">Station Status</a>
-      |
-      <a href="https://data.sparkfun.com/streams/1nXZMd60WgfxnN7oWl6q">Raw Weather Data</a>
-      |
-      <a href="https://data.sparkfun.com/streams/LQa68LGZKNhjElDrpobO">Raw Status Data</a>
-      </td><td align=right>
-      <a href="https://github.com/astroeng/Weather_Station">Station Code</a>
-      |
-      <a href="https://github.com/astroeng/Website">Website Code</a>    
-      </td></tr></table>
+    <div id="headerHTML"></div>
     <hr width="80%" align=center>
     <table width="80%" align=center>
        <tr align=center>
          <td><div id="taskChart" style="width: 100%;"></div></td>
        </tr>
        <tr align=center>
+         <td><div id="phantChart" style="width: 100%;"></div></td>
+       </tr>
+       <tr align=center>
          <td><div id="batteryChart" style="width: 100%;"></div></td>
        </tr>
     </table>
   </body>
+  <script>
+  $('#headerHTML').html(header());
+  </script>
 </html>
