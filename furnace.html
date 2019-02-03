@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html><head>
+      <script type = "text/javascript" src = "https://www.gstatic.com/charts/loader.js">
+      </script>
+      <script type = "text/javascript">
+         google.charts.load('current', {packages: ['corechart','line']});  
+      </script>
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.283.1.min.js"></script>
+    <script>
+        // Initialize the Amazon Cognito credentials provider
+        AWS.config.region = 'us-east-1'; 
+        AWS.config.credentials = new AWS.CognitoIdentityCredentials({IdentityPoolId: 'us-east-1:ea38ded8-cf3d-440a-b6b1-217553b6f72a'});
+    </script>
+    <script>
+        // Function invoked by button click
+        function drawChart() {			
+            var docClient = new AWS.DynamoDB.DocumentClient();
+            
+            start = Date.now()-1000*60*60*2
+            end = Date.now()
+            
+            var params = {
+              TableName: "iot-data-table",
+              KeyConditionExpression: "#device = :partition_val and #ts BETWEEN :startDate AND :endDate",
+              ExpressionAttributeNames: { "#device": "device",
+                                          "#ts": "timestamp" },
+              ExpressionAttributeValues: {
+                  ':partition_val': 'furnaceZones',
+                  ":startDate": start.toString(),
+                  ":endDate": end.toString()
+              }
+            };
+
+            var optionsZone = {
+              width: 1200, height: 400
+            };
+            
+            var zoneData = new google.visualization.DataTable();
+
+            zoneData.addColumn('datetime', 'Time');
+            zoneData.addColumn('number', 'z1 (F)');
+            zoneData.addColumn('number', 'z2 (F)');
+            zoneData.addColumn('number', 'z3 (F)');
+            zoneData.addColumn('number', 'z4 (F)');
+            zoneData.addColumn('number', 'zF (F)');
+            
+            docClient.query(params, function(err, data) {
+              if (err) {
+                console.log("Unable to query. Error:", JSON.stringify(err, null, 2));
+              } else {
+                console.log("Query succeeded.");
+                data.Items.forEach(function(item) {
+                  //console.log(" -", item.timestamp + ": " + item.payload.zone1);
+                  //console.log(item.payload.zone1);
+                  zoneData.addRow([new Date(parseFloat(item.timestamp)),
+                                   parseFloat(item.payload.zone1),
+                                   parseFloat(item.payload.zone2),
+                                   parseFloat(item.payload.zone3),
+                                   parseFloat(item.payload.zone4),
+                                   parseFloat(item.payload.zoneFeed)]);
+                });
+              }
+              var chartZone = new google.visualization.LineChart(document.getElementById('zoneChart'));
+              chartZone.draw(zoneData, optionsZone);
+            });
+
+        }
+
+// call drawChart once google charts is loaded
+google.setOnLoadCallback(function() { drawChart()});
+</script>
+</head>
+<body>
+<td><div id="zoneChart" style="width: 100%;"></div></td>
+
+<table width="80%" align=center><tr><td><div id="gaugeGallons" style="width: 100%;"></div></td></tr></table>
+
+    <div id="textToSynth">
+    <button class="btn default" onClick="drawChart()">ReDraw</button><p id="result"></p>
+    </div>
+
+
+
+</body></html>
